@@ -9,6 +9,8 @@ jobs:
     env:
       MAKE: make
       PYTHON_BIN: python3
+      IMAGE_ARCH: amd64
+      IMAGE_DIST: centos-7
       GHCR_NAMESPACE: ${{ github.actor }}
     steps:
       - name: Check out Git repository
@@ -33,38 +35,81 @@ jobs:
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-build-base
 
+          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "build-base-" | head -n 1 | tr '\t' '\n')
+          BUILD_BASE_IMAGE_NAME=${IID[0]}
+          test -n "$BUILD_BASE_IMAGE_NAME"
+          echo "BUILD_BASE_IMAGE_NAME=$BUILD_BASE_IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: docker push build-base GHCR
+        run: |
+          docker images
+
+          docker images --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #' -e 's#.*#|\0|#'
+
+          # push OL image to GHCR
+          docker push $BUILD_BASE_IMAGE_NAME "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:latest"
+
       - name: make build-run-base
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-run-base
+
+          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "run-base-" | head -n 1 | tr '\t' '\n')
+          RUN_BASE_IMAGE_NAME=${IID[0]}
+          test -n "$RUN_BASE_IMAGE_NAME"
+          echo "RUN_BASE_IMAGE_NAME=$RUN_BASE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: make build-openroad_app
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openroad_app
 
+          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "openroad_app-" | head -n 1 | tr '\t' '\n')
+          OPENROAD_APP_IMAGE_NAME=${IID[0]}
+          test -n "$OPENROAD_APP_IMAGE_NAME"
+          echo "OPENROAD_APP_IMAGE_NAME=$OPENROAD_APP_IMAGE_NAME" >> $GITHUB_ENV
+
+          # TODO
           # checkout OpenROAD
           # patch OpenROAD
           # build OpenROAD
 
-          # patch dependencies/tool_metadata.yml with local OR image
+          # using the environment variables
+          # patch dependencies/tool_metadata.yml with local image references
           # patch docker/openlane/Dockerfile
+          # mark the image somewhere as unofficial build (so this is clearly in logs and data)
 
       - name: make openlane
         run: |
+          #PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openlane
           # make openlane
           make openlane 2>&1 | tee MAKE_OPENLANE.LOG
           
-          docker images
+          # REPOSITORY                TAG                                                                                          IMAGE ID       CREATED              SIZE
+          # efabless/openlane         861d98e2ee37ffb009361d872d2dd1b60071b1c2-amd64                                               d7753fb0bc2f   8 seconds ago        1.52GB
+          # efabless/openlane-tools   openroad_app-0889970d1790a2617e69f253221b8bd7626e51dc-centos-7-amd64                         084651ae695a   About a minute ago   1.19GB
+          # efabless/openlane-tools   run-base-48064de8a7ca444cef6b9b7dbb520e370edd0b620b825282931a6373b7948e5a-centos-7-amd64     6fd58af52079   45 minutes ago       1.02GB
+          # efabless/openlane-tools   build-base-48064de8a7ca444cef6b9b7dbb520e370edd0b620b825282931a6373b7948e5a-centos-7-amd64   99f9cfdd99b1   48 minutes ago       2.02GB
+          # efabless/openlane-tools   verilator-67dfa37c560385827218350ea936eb1baf604240-centos-7-amd64                            73e532bab9a0   4 months ago         1.16GB
+          # efabless/openlane-tools   yosys-4a1b5599258881f579a2d95274754bcd8fc171bd-centos-7-amd64                                23590823c635   5 months ago         1.04GB
+          # efabless/openlane-tools   magic-0afe4d87d4aacfbbb2659129a1858a22d216a920-centos-7-amd64                                fe8bfaa30f8b   8 months ago         614MB
+          # efabless/openlane-tools   netgen-87d8759a6980d297edcb9be6f8661867e4726f9a-centos-7-amd64                               da7d1f9ac566   9 months ago         596MB
+          # efabless/openlane-tools   klayout-44a2aa9ca17c2b1c154f9c410ded063de9ed3e12-centos-7-amd64                              e990dd840e43   15 months ago        706MB
+          # efabless/openlane-tools   git-e9d7761bb94f20acc98824275e317fa82436c25d-centos-7-amd64                                  d1e132b58bea   23 months ago        771MB
+          # efabless/openlane-tools   vlogtoverilog-a550469b63e910ede6e3022e2886bca96462c540-centos-7-amd64                        4b7578583789   23 months ago        594MB
+          # efabless/openlane-tools   padring-b2a64abcc8561d758c0bcb3945117dcb13bd9dca-centos-7-amd64                              4eb4f439b302   23 months ago        599MB
 
-          # fish out iid
-          CID=$(tail -n 5 MAKE_OPENLANE.LOG | egrep "^[0-9a-fA-F]{64}$" | tr -d '\r\n')
-          echo "CID=$CID"
-
-          echo "LOCAL_IMAGE_NAME=$CID" >> $GITHUB_ENV
-
+          # fish out containerID iid, its the only image in efabless/openlane
+          readarray IID <<< $(podman images --filter "reference=efabless/openlane" --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "[0-9a-fA-F]{40}-${IMAGE_ARCH}" | head -n 1 | tr '\t' '\n')
+          OPENLANE_IMAGE_NAME=${IID[0]}
+          test -n "$OPENLANE_IMAGE_NAME"
+          echo "OPENLANE_IMAGE_NAME=$OPENLANE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push GHCR
         run: |
+          docker images
+
+          docker images --format "{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #' -e 's#.*#|\0|#'
+
           # push OL image to GHCR
-          docker push $LOCAL_IMAGE_NAME "ghcr.io/$GHCR_NAMESPACE/openlane-${LOCAL_IMAGE_NAME}:latest"
+          docker push $OPENLANE_IMAGE_NAME "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:latest"
 
 
