@@ -31,15 +31,15 @@ jobs:
 
       - name: make build-build-base
         run: |
-          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-build-base
+          PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-build-base
 
       - name: make build-run-base
         run: |
-          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-run-base
+          PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-run-base
 
       - name: make build-openroad_app
         run: |
-          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-openroad_app
+          PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openroad_app
 
           # checkout OpenROAD
           # patch OpenROAD
