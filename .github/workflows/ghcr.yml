@@ -7,6 +7,8 @@ jobs:
     name: Build GHCR OpenLane Image
     runs-on: ubuntu-latest
     env:
+      MAKE: make
+      PYTHON_BIN: python3
       GHCR_NAMESPACE: ${{ github.actor }}
     steps:
       - name: Check out Git repository
@@ -29,15 +31,15 @@ jobs:
 
       - name: make build-build-base
         run: |
-          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-build-base
+          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-build-base
 
       - name: make build-run-base
         run: |
-          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-run-base
+          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-run-base
 
       - name: make build-openroad_app
         run: |
-          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-openroad_app
+          PYTHON_BIN=$(pwd)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-openroad_app
 
           # checkout OpenROAD
           # patch OpenROAD
