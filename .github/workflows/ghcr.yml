@@ -1,0 +1,68 @@
+name: ghcr
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build GHCR OpenLane Image
+    runs-on: ubuntu-latest
+    env:
+      GHCR_NAMESPACE: ${{ github.actor }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker version
+          docker info
+          # docker build \
+          # --label "org.opencontainers.image.source=https://github.com/octocat/my-repo" \
+          # --label "org.opencontainers.image.description=My container image" \
+          # --label "org.opencontainers.image.licenses=MIT"
+
+      - name: make venv
+        run: |
+          make venv
+
+      - name: make build-build-base
+        run: |
+          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-build-base
+
+      - name: make build-run-base
+        run: |
+          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-run-base
+
+      - name: make build-openroad_app
+        run: |
+          PYTHON_BIN=$(PWD)/venv/bin/$(PYTHON_BIN) $(MAKE) -C docker build-openroad_app
+
+          # checkout OpenROAD
+          # patch OpenROAD
+          # build OpenROAD
+
+          # patch dependencies/tool_metadata.yml with local OR image
+          # patch docker/openlane/Dockerfile
+
+      - name: make openlane
+        run: |
+          # make openlane
+          make openlane 2>&1 | tee MAKE_OPENLANE.LOG
+          
+          docker images
+
+          # fish out iid
+          CID=$(tail -n 5 MAKE_OPENLANE.LOG | egrep "^[0-9a-fA-F]{64}$" | tr -d '\r\n')
+          echo "CID=$CID"
+
+          echo "LOCAL_IMAGE_NAME=$CID" >> $GITHUB_ENV
+
+
+      - name: docker push GHCR
+        run: |
+          # push OL image to GHCR
+          docker push $LOCAL_IMAGE_NAME "ghcr.io/$GHCR_NAMESPACE/openlane-${LOCAL_IMAGE_NAME}:latest"
+
+
