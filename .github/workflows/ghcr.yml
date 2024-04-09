@@ -15,7 +15,7 @@ jobs:
       IMAGE_DIST: centos-7
       GHCR_NAMESPACE: ${{ github.actor }}
       # Do you wish to push any intermediate images built to GHCR
-      GHCR_PUSH_INTERMEDIATES: true
+      GHCR_PUSH_INTERMEDIATES: false
       GHCR_PUSH_FINAL: true
       GHCR_TAG: latest
     steps:
@@ -61,12 +61,12 @@ jobs:
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
-          docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
           # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          docker push "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
 
       - name: make build-run-base
         run: |
@@ -84,12 +84,12 @@ jobs:
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
-          docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
           # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          docker push "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
 
       - name: make build-openroad_app
         run: |
