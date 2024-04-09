@@ -13,6 +13,7 @@ jobs:
       PYTHON_BIN: python3
       IMAGE_ARCH: amd64
       IMAGE_DIST: centos-7
+      #DOCKER_OPTS: '--insecure-registry docker.io'
       # TEST OR BUILD
       BUILD_BUILD_BASE: false
       BUILD_RUN_BASE: false
@@ -32,6 +33,10 @@ jobs:
           docker version
           docker info
           docker images
+
+          # FIXME
+          docker pull docker.io/efabless/openlane-tools:build-base-48064de8a7ca444cef6b9b7dbb520e370edd0b620b825282931a6373b7948e5a-centos-7-amd64
+          docker pull docker.io/efabless/openlane-tools:run-base-b4cf9f47b07511bd9f8076c44802223d7a52e900ea5c6cf9acf14fd2abb78b83-centos-7-amd64
 
           echo -n "$GITHUB_TOKEN" | docker login ghcr.io -u "$GHCR_NAMESPACE" --password-stdin
 
