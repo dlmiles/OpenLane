@@ -2,6 +2,25 @@ name: ghcr
 on:
   workflow_dispatch:
 
+inputs:
+  OPENLANE_TAG:
+    description: 'OpenLANE Tag ?'
+    type: string
+    default: branch/master
+    required: true
+
+  BUILD_BUILD_BASE:
+    description: 'Build build-base ?'
+    type: boolean
+    default: false
+    required: true
+
+  BUILD_RUN_BASE:
+    description: 'Build run-base ?'
+    type: boolean
+    default: false
+    required: true
+
 jobs:
   build:
     name: Build GHCR OpenLane Image
@@ -15,16 +34,19 @@ jobs:
       IMAGE_DIST: centos-7
       #DOCKER_OPTS: '--insecure-registry docker.io'
       # TEST OR BUILD
-      BUILD_BUILD_BASE: false
-      BUILD_RUN_BASE: false
+      BUILD_BUILD_BASE: ${{ inputs.BUILD_BUILD_BASE }}
+      BUILD_RUN_BASE: ${{ inputs.BUILD_RUN_BASE }}
       GHCR_NAMESPACE: ${{ github.actor }}
       # Do you wish to push any intermediate images built to GHCR
       GHCR_PUSH_INTERMEDIATES: false
       GHCR_PUSH_FINAL: true
       GHCR_TAG: latest
+      OPENLANE_TAG: ${{ inputs.OPENLANE_TAG }}
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
+          with:
+            ref: ${{ inputs.OPENLANE_TAG }}
 
       - name: docker
         env:
@@ -131,10 +153,10 @@ jobs:
           #git am ../openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch
           if patch -p1 < ../.github/workflows/openlane_spo_ol1.patch
           then
-            true
+            echo "Patch001 Successful"
           elif patch -p1 < ../openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch
           then
-            true
+            echo "Patch002 Successful, ignore error above."
           else
             echo "$0: Unable to patch" 1>&2
             exit 1
@@ -142,7 +164,7 @@ jobs:
           git config --global user.email "darryl.miles.darrylmiles.org"
           git config --global user.name "Darryl L. Miles GHA"
           git commit -m "SPO antenna repair fix d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc" -a
-          git log -n1
+          git log -n3
           echo "git archive ..."
           git archive -o ../docker/openroad_app/OpenROAD.tar.gz HEAD
           ls -lad --full-time ../docker/openroad_app/OpenROAD.tar.gz
