@@ -150,4 +150,9 @@ jobs:
           # push OL image to GHCR
           docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
 
+      - name: cleanup
+        if: always()
+        run: |
+          dd if=/dev/zero bs=4k count=1 of=$HOME/.docker/config.json # chattr +s config.json
+          rm -fv $HOME/.docker/config.json # paranoid cleanup
 
