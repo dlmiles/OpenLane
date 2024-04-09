@@ -29,6 +29,9 @@ jobs:
           docker version
           docker info
           docker images
+
+          echo -n "$GITHUB_TOKEN" | docker login ghcr.io -u "$GHCR_NAMESPACE" --password-stdin
+
           # docker build \
           # --label "org.opencontainers.image.source=https://github.com/octocat/my-repo" \
           # --label "org.opencontainers.image.description=My container image" \
@@ -60,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
-          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
+          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #g" -e 's#.*#|\0|#'
           docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
@@ -83,7 +86,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
-          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
+          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #g" -e 's#.*#|\0|#'
           docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
@@ -142,8 +145,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
-
-          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #' -e 's#.*#|\0|#'
+          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #g' -e 's#.*#|\0|#'
           docker tag "$OPENLANE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
           # push OL image to GHCR
           docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
