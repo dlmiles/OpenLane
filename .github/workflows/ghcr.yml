@@ -120,7 +120,8 @@ jobs:
           # https://github.com/obriensp/OpenROAD/tree/spo/ol2-antenna-repair-patch
           curl -s -o openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch "https://github.com/The-OpenROAD-Project/OpenROAD/commit/d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch"
           # checkout OpenROAD
-          git -c protocol.version=2 clone --no-tags --no-recurse-submodules --depth=1 -b 0889970d1790a2617e69f253221b8bd7626e51dc https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
+          #git -c protocol.version=2 clone --no-tags --no-recurse-submodules --depth=1 -b 0889970d1790a2617e69f253221b8bd7626e51dc https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
+          git -c protocol.version=2 clone --no-recurse-submodules https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
           pwd
           ls -la
           cd OpenROAD
