@@ -44,10 +44,10 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          fetch-tags: true
-          ref: ${{ inputs.OPENLANE_TAG }}
+        #with:
+        #  repository: ${{ github.repository }}
+        #  fetch-tags: true
+        #  ref: ${{ inputs.OPENLANE_TAG }}
 
       - name: docker
         env:
