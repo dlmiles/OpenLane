@@ -1,25 +1,24 @@
 name: ghcr
 on:
   workflow_dispatch:
+    inputs:
+      OPENLANE_TAG:
+        description: 'OpenLANE Tag ?'
+        type: string
+        default: branch/master
+        required: true
 
-inputs:
-  OPENLANE_TAG:
-    description: 'OpenLANE Tag ?'
-    type: string
-    default: branch/master
-    required: true
+      BUILD_BUILD_BASE:
+        description: 'Build build-base ?'
+        type: boolean
+        default: false
+        required: true
 
-  BUILD_BUILD_BASE:
-    description: 'Build build-base ?'
-    type: boolean
-    default: false
-    required: true
-
-  BUILD_RUN_BASE:
-    description: 'Build run-base ?'
-    type: boolean
-    default: false
-    required: true
+      BUILD_RUN_BASE:
+        description: 'Build run-base ?'
+        type: boolean
+        default: false
+        required: true
 
 jobs:
   build:
