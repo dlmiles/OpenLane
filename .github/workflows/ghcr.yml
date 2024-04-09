@@ -13,6 +13,9 @@ jobs:
       PYTHON_BIN: python3
       IMAGE_ARCH: amd64
       IMAGE_DIST: centos-7
+      # TEST OR BUILD
+      BUILD_BUILD_BASE: false
+      BUILD_RUN_BASE: false
       GHCR_NAMESPACE: ${{ github.actor }}
       # Do you wish to push any intermediate images built to GHCR
       GHCR_PUSH_INTERMEDIATES: false
@@ -38,7 +41,7 @@ jobs:
           # --label "org.opencontainers.image.licenses=MIT"
 
           # GHA template avoidance
-          docker_format="{ .ID }\t{ .Repository }\t{ .Tag }\t{ .CreatedAt }" # GHA escape avoidance
+          docker_format="{ .ID }\t{ .Repository }\t{ .Tag }\t{ .CreatedAt }\t{ .Size }" # GHA escape avoidance
           docker_format=$(echo -n "$docker_format" | sed -e "s#{#{{#g" -e "s#}#}}#g")
           echo "docker_format=$docker_format"
           # go templates and GHA templates seem the same
@@ -49,6 +52,7 @@ jobs:
           make venv
 
       - name: make build-build-base
+        if: ${{ env.BUILD_BUILD_BASE }}
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-build-base
 
@@ -62,16 +66,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #g" -e 's#.*#|\0|#'
           docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
-          # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          if [ "$GHCR_PUSH_INTERMEDIATES" != "false" ]
+          then
+            # push OL image to GHCR
+            docker push "ghcr.io/$GHCR_NAMESPACE/build-base-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          else
+            echo "GHCR_PUSH_INTERMEDIATES=$GHCR_PUSH_INTERMEDIATES"
+          fi
 
       - name: make build-run-base
+        if: ${{ env.BUILD_RUN_BASE }}
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-run-base
 
@@ -85,17 +94,44 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #g" -e 's#.*#|\0|#'
           docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
-          # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          if [ "$GHCR_PUSH_INTERMEDIATES" != "false" ]
+          then
+            # push OL image to GHCR
+            docker push "ghcr.io/$GHCR_NAMESPACE/run-base-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
+          else
+            echo "GHCR_PUSH_INTERMEDIATES=$GHCR_PUSH_INTERMEDIATES"
+          fi
 
       - name: make build-openroad_app
         run: |
+          # https://github.com/obriensp/OpenROAD/tree/spo/ol2-antenna-repair-patch
+          curl -s -o openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch "https://github.com/The-OpenROAD-Project/OpenROAD/commit/d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch"
+          # checkout OpenROAD
+          git -c protocol.version=2 clone --no-tags --progress --no-recurse-submodules --depth=1 https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
+          cd OpenROAD
+          git checkout -b master origin/master
+          # patch OpenROAD
+          git am openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch
+          git log -n1
+          git archive -o docker/openroad_app/OpenROAD.tar.gz HEAD
+          ls -lad --full-time docker/openroad_app/OpenROAD.tar.gz
+
+          # Now this does not work at this time, it expects to get with curl
+          #
+          OPENROAD_APP_REPO=$(pwd)
+          OPENROAD_APP_COMMIT=$(git rev-parse HEAD)
+          #
+          ## So we patch the Dockerfile to change where the OpenROAD source comes from
+          cp -v docker/openroad_app/Dockerfile docker/openroad_app/Dockerfile.bak
+          sed -e '/^RUN curl -L \${OPENROAD_APP_REPO.*/cCOPY ./OpenROAD.tar.gz .\nRUN tar -xzC . -f ./OpenROAD.tar.gz --strip-components=1' -i docker/openroad_app/Dockerfile
+          diff -u docker/openroad_app/Dockerfile.bak docker/openroad_app/Dockerfile
+          
+          # build OpenROAD
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openroad_app
 
           readarray IID <<< $(docker images --filter "reference=efabless/openlane-tools" --format "$DOCKER_FORMAT" | egrep "openroad_app-" | head -n 1 | tr '\t' '\n')
@@ -103,21 +139,37 @@ jobs:
           test -n "$OPENROAD_APP_IMAGE_NAME"
           echo "OPENROAD_APP_IMAGE_NAME=$OPENROAD_APP_IMAGE_NAME" >> $GITHUB_ENV
 
-          # TODO
-          # checkout OpenROAD
-          # patch OpenROAD
-          # build OpenROAD
+
+      - name: tool_metadata.yml
+        run: |          
+          if [ ! -f dependencies/tool_metadata.yml.bak ]
+          then
+            cp -v dependencies/tool_metadata.yml dependencies/tool_metadata.yml.bak
+          fi
 
           # using the environment variables
           # patch dependencies/tool_metadata.yml with local image references
+          if [ -n "$OPENROAD_APP_IMAGE_NAME" ]
+          then
+            OPENROAD_APP_IMAGE_NAME_FULL=$(docker images --filter "id=$OPENROAD_APP_IMAGE_NAME" --no-trunc -q)
+            sed -e "/^- name: openroad_app/{n;n;s/^  commit: .*/  commit: ${OPENROAD_APP_IMAGE_NAME_FULL}/}" -i dependencies/tool_metadata.yml
+          fi
+
+          diff -u dependencies/tool_metadata.yml.bak dependencies/tool_metadata.yml
+
           # patch docker/openlane/Dockerfile
+          # Hmm this is just a *.tpl now
+
+          # TODO
           # mark the image somewhere as unofficial build (so this is clearly in logs and data)
 
       - name: make openlane
         run: |
-          #PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openlane
+          export RUN_BASE_IMAGE=$RUN_BASE_IMAGE_NAME
+          export BUILD_BASE_IMAGE=$BUILD_BASE_IMAGE_NAME
+          PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openlane
           # make openlane
-          make openlane 2>&1 | tee MAKE_OPENLANE.LOG
+          #make openlane 2>&1 | tee MAKE_OPENLANE.LOG
           
           # REPOSITORY                TAG                                                                                          IMAGE ID       CREATED              SIZE
           # efabless/openlane         861d98e2ee37ffb009361d872d2dd1b60071b1c2-amd64                                               d7753fb0bc2f   8 seconds ago        1.52GB
@@ -145,14 +197,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
-          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #g' -e 's#.*#|\0|#'
+
+          (
+          echo "| ID | Repository | Tag | Created | Size |"
+          echo "| - | - | - | - | - |"
+          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane\\W)" | sed -e 's#\t# | #g' -e 's#.*#|\0|#'
+          echo "|  |  |  |  |  |"
+          docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane-tools\\W)" | sed -e 's#\t# | #g' -e 's#.*#|\0|#'
+          ) >> $GITHUB_STEP_SUMMARY
+
           docker tag "$OPENLANE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
-          # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
+
+          if [ "$GHCR_PUSH_FINAL" != "false" ]
+          then
+            # push OL image to GHCR
+            docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
+          fi
 
       - name: cleanup
         if: always()
         run: |
+          ls -l $HOME/.docker/config.json
           dd if=/dev/zero bs=4k count=1 of=$HOME/.docker/config.json # chattr +s config.json
           rm -fv $HOME/.docker/config.json # paranoid cleanup
 
