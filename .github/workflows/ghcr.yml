@@ -61,7 +61,7 @@ jobs:
           echo "BUILD_BASE_IMAGE_NAME=$BUILD_BASE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push build-base GHCR
-        if: ${{ GHCR_PUSH_INTERMEDIATES && BUILD_BASE_IMAGE_NAME }}
+        if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.BUILD_BASE_IMAGE_NAME }}
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
@@ -82,7 +82,7 @@ jobs:
           echo "RUN_BASE_IMAGE_NAME=$RUN_BASE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push run-base GHCR
-        if: ${{ GHCR_PUSH_INTERMEDIATES && RUN_BASE_IMAGE_NAME }}
+        if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.RUN_BASE_IMAGE_NAME }}
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
