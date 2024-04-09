@@ -35,6 +35,15 @@ jobs:
           echo "docker_format=$docker_format"
           # go templates and GHA templates seem the same
           echo "DOCKER_FORMAT=$docker_format" >> $GITHUB_ENV
+          
+          docker images --format "$docker_format"
+          readarray IID <<< $(docker images --filter "reference=node" --format "$docker_format" | egrep "20-apline" | head -n 1 | tr '\t' '\n')
+          echo ${IID[0]}
+          echo ${IID[1]}
+          echo ${IID[2]}
+          echo ${IID[3]}
+          echo ${IID[*]}
+
 
       - name: make venv
         run: |
@@ -47,7 +56,7 @@ jobs:
           #docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
           docker_format="$DOCKER_FORMAT"
           echo docker_format=$docker_format
-          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "build-base-" | head -n 1 | tr '\t' '\n')
+          readarray IID <<< $(docker images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "build-base-" | head -n 1 | tr '\t' '\n')
           BUILD_BASE_IMAGE_NAME=${IID[0]}
           test -n "$BUILD_BASE_IMAGE_NAME"
           echo "BUILD_BASE_IMAGE_NAME=$BUILD_BASE_IMAGE_NAME" >> $GITHUB_ENV
@@ -69,7 +78,7 @@ jobs:
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-run-base
 
           docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
-          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "run-base-" | head -n 1 | tr '\t' '\n')
+          readarray IID <<< $(docker images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "run-base-" | head -n 1 | tr '\t' '\n')
           RUN_BASE_IMAGE_NAME=${IID[0]}
           test -n "$RUN_BASE_IMAGE_NAME"
           echo "RUN_BASE_IMAGE_NAME=$RUN_BASE_IMAGE_NAME" >> $GITHUB_ENV
@@ -79,7 +88,7 @@ jobs:
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openroad_app
 
           docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
-          readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "openroad_app-" | head -n 1 | tr '\t' '\n')
+          readarray IID <<< $(docker images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "openroad_app-" | head -n 1 | tr '\t' '\n')
           OPENROAD_APP_IMAGE_NAME=${IID[0]}
           test -n "$OPENROAD_APP_IMAGE_NAME"
           echo "OPENROAD_APP_IMAGE_NAME=$OPENROAD_APP_IMAGE_NAME" >> $GITHUB_ENV
@@ -116,7 +125,7 @@ jobs:
 
           # fish out containerID iid, its the only image in efabless/openlane
           docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
-          readarray IID <<< $(podman images --filter "reference=efabless/openlane" --format "$docker_format" | egrep "[0-9a-fA-F]{40}-${IMAGE_ARCH}" | head -n 1 | tr '\t' '\n')
+          readarray IID <<< $(docker images --filter "reference=efabless/openlane" --format "$docker_format" | egrep "[0-9a-fA-F]{40}-${IMAGE_ARCH}" | head -n 1 | tr '\t' '\n')
           OPENLANE_IMAGE_NAME=${IID[0]}
           test -n "$OPENLANE_IMAGE_NAME"
           echo "OPENLANE_IMAGE_NAME=$OPENLANE_IMAGE_NAME" >> $GITHUB_ENV
