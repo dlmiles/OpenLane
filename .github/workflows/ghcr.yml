@@ -35,8 +35,11 @@ jobs:
           docker images
 
           # FIXME
-          docker pull docker.io/efabless/openlane-tools:build-base-48064de8a7ca444cef6b9b7dbb520e370edd0b620b825282931a6373b7948e5a-centos-7-amd64
+          docker pull docker.io/efabless/openlane-tools:build-base-b4cf9f47b07511bd9f8076c44802223d7a52e900ea5c6cf9acf14fd2abb78b83-centos-7-amd64
           docker pull docker.io/efabless/openlane-tools:run-base-b4cf9f47b07511bd9f8076c44802223d7a52e900ea5c6cf9acf14fd2abb78b83-centos-7-amd64
+
+          docker pull efabless/openlane-tools:build-base-dfc8ee9717261f682460feb13f444f131139bd7c257ba3463d72bca3de7f46c5-centos-7-amd64
+          docker pull efabless/openlane-tools:run-base-dfc8ee9717261f682460feb13f444f131139bd7c257ba3463d72bca3de7f46c5-centos-7-amd64
 
           echo -n "$GITHUB_TOKEN" | docker login ghcr.io -u "$GHCR_NAMESPACE" --password-stdin
 
