@@ -14,6 +14,8 @@ jobs:
       GHCR_NAMESPACE: ${{ github.actor }}
       # Do you wish to push any intermediate images built to GHCR
       GHCR_PUSH_INTERMEDIATES: true
+      GHCR_PUSH_FINAL: true
+      GHCR_TAG: latest
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
@@ -30,7 +32,6 @@ jobs:
           # --label "org.opencontainers.image.description=My container image" \
           # --label "org.opencontainers.image.licenses=MIT"
 
-
           # GHA template avoidance
           docker_format="{ .ID }\t{ .Repository }\t{ .Tag }\t{ .CreatedAt }" # GHA escape avoidance
           docker_format=$(echo -n "$docker_format" | sed -e "s#{#{{#g" -e "s#}#}}#g")
@@ -38,15 +39,6 @@ jobs:
           # go templates and GHA templates seem the same
           echo "DOCKER_FORMAT=$docker_format" >> $GITHUB_ENV
           
-          docker images --format "$docker_format"
-          readarray IID <<< $(docker images --filter "reference=node" --format "$docker_format" | egrep "20-alpine" | head -n 1 | tr '\t' '\n')
-          echo ${IID[0]}
-          echo ${IID[1]}
-          echo ${IID[2]}
-          echo ${IID[3]}
-          echo ${IID[*]}
-
-
       - name: make venv
         run: |
           make venv
@@ -62,15 +54,17 @@ jobs:
 
       - name: docker push build-base GHCR
         if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.BUILD_BASE_IMAGE_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
-          docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:latest"
+          docker tag "$BUILD_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
           # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:latest"
+          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${BUILD_BASE_IMAGE_NAME}:${GHCR_TAG}"
 
       - name: make build-run-base
         run: |
@@ -83,15 +77,17 @@ jobs:
 
       - name: docker push run-base GHCR
         if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.RUN_BASE_IMAGE_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e "s#\t# | #" -e 's#.*#|\0|#'
-          docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:latest"
+          docker tag "$RUN_BASE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
           echo "###"
           docker images
 
           # push OL image to GHCR
-          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:latest"
+          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${RUN_BASE_IMAGE_NAME}:${GHCR_TAG}"
 
       - name: make build-openroad_app
         run: |
@@ -139,12 +135,15 @@ jobs:
           echo "OPENLANE_IMAGE_NAME=$OPENLANE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push GHCR
+        if: ${{ env.GHCR_PUSH_FINAL && env.OPENLANE_IMAGE_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker images
 
           docker images --format "$DOCKER_FORMAT" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #' -e 's#.*#|\0|#'
-
+          docker tag "$OPENLANE_IMAGE_NAME" "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
           # push OL image to GHCR
-          docker push $OPENLANE_IMAGE_NAME "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:latest"
+          docker push "ghcr.io/$GHCR_NAMESPACE/openlane-${OPENLANE_IMAGE_NAME}:${GHCR_TAG}"
 
 
