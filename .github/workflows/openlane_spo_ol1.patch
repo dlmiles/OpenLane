@@ -1,0 +1,19 @@
+diff --git a/src/grt/src/RepairAntennas.cpp b/src/grt/src/RepairAntennas.cpp
+index 31e99c6..89e2a1b 100644
+--- a/src/grt/src/RepairAntennas.cpp
++++ b/src/grt/src/RepairAntennas.cpp
+@@ -303,8 +303,12 @@ void RepairAntennas::addWireTerms(Net* net,
+             // a via to connect both wires
+             wire_encoder.newPath(tech_layer, odb::dbWireType::ROUTED);
+             wire_encoder.addPoint(grid_pt.x(), grid_pt.y());
+-            wire_encoder.addTechVia(
+-                default_vias[grouter_->getMinRoutingLayer()]);
++            // when tech_layer<layer1 this seems to cause a problem
++            //wire_encoder.addTechVia(
++            //    default_vias[grouter_->getMinRoutingLayer()]);
++            for (int i = tech_layer->getRoutingLevel(); i < layer2->getRoutingLevel(); i++) {
++              wire_encoder.addTechVia(default_vias[i]);
++            }
+           }
+ 
+           if (layer2->getDirection() == odb::dbTechLayerDir::VERTICAL) {
