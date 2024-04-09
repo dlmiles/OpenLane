@@ -125,6 +125,7 @@ jobs:
           ls -la
           cd OpenROAD
           #git checkout -b master origin/master
+          git checkout -b 0889970d17 0889970d1790a2617e69f253221b8bd7626e51dc
           # patch OpenROAD
           #git am ../openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch
           patch -p1 < ../.github/workflows/openlane_spo_ol1.patch
