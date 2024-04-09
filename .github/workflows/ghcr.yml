@@ -133,6 +133,7 @@ jobs:
           then
             true
           elif patch -p1 < ../openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch
+          then
             true
           else
             echo "$0: Unable to patch" 1>&2
