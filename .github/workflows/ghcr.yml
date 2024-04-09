@@ -124,10 +124,9 @@ jobs:
           git config --global user.name "Darryl L. Miles GHA"
           git commit -m "SPO antenna repair fix d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc" -a
           git log -n1
+          echo "git archive ..."
           git archive -o ../docker/openroad_app/OpenROAD.tar.gz HEAD
           ls -lad --full-time ../docker/openroad_app/OpenROAD.tar.gz
-          cd ..
-
           # Now this does not work at this time, it expects to get with curl
           #
           OPENROAD_APP_REPO=$(pwd)
@@ -135,10 +134,12 @@ jobs:
           OPENROAD_APP_COMMIT=$(git rev-parse HEAD)
           echo "OPENROAD_APP_COMMIT=$OPENROAD_APP_COMMIT"
           #
+          cd ..
+
           ## So we patch the Dockerfile to change where the OpenROAD source comes from
           cp -v docker/openroad_app/Dockerfile docker/openroad_app/Dockerfile.bak
           sed -e '/^RUN curl -L \${OPENROAD_APP_REPO.*/cCOPY ./OpenROAD.tar.gz .\nRUN tar -xzC . -f ./OpenROAD.tar.gz --strip-components=1' -i docker/openroad_app/Dockerfile
-          diff -u docker/openroad_app/Dockerfile.bak docker/openroad_app/Dockerfile
+          diff -u docker/openroad_app/Dockerfile.bak docker/openroad_app/Dockerfile || true
           
           # build OpenROAD
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-openroad_app
