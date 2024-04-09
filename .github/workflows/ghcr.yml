@@ -52,7 +52,7 @@ jobs:
           make venv
 
       - name: make build-build-base
-        if: ${{ env.BUILD_BUILD_BASE }}
+        if: ${{ env.BUILD_BUILD_BASE != 'false' }}
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-build-base
 
@@ -62,7 +62,7 @@ jobs:
           echo "BUILD_BASE_IMAGE_NAME=$BUILD_BASE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push build-base GHCR
-        if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.BUILD_BASE_IMAGE_NAME }}
+        if: ${{ env.GHCR_PUSH_INTERMEDIATES != 'false' && env.BUILD_BASE_IMAGE_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -80,7 +80,7 @@ jobs:
           fi
 
       - name: make build-run-base
-        if: ${{ env.BUILD_RUN_BASE }}
+        if: ${{ env.BUILD_RUN_BASE != 'false' }}
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-run-base
 
@@ -90,7 +90,7 @@ jobs:
           echo "RUN_BASE_IMAGE_NAME=$RUN_BASE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push run-base GHCR
-        if: ${{ env.GHCR_PUSH_INTERMEDIATES && env.RUN_BASE_IMAGE_NAME }}
+        if: ${{ env.GHCR_PUSH_INTERMEDIATES != 'false' && env.RUN_BASE_IMAGE_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -192,7 +192,7 @@ jobs:
           echo "OPENLANE_IMAGE_NAME=$OPENLANE_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: docker push GHCR
-        if: ${{ env.GHCR_PUSH_FINAL && env.OPENLANE_IMAGE_NAME }}
+        if: ${{ env.GHCR_PUSH_FINAL != 'false' && env.OPENLANE_IMAGE_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
