@@ -112,7 +112,9 @@ jobs:
           # https://github.com/obriensp/OpenROAD/tree/spo/ol2-antenna-repair-patch
           curl -s -o openlane_spo_d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch "https://github.com/The-OpenROAD-Project/OpenROAD/commit/d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc.patch"
           # checkout OpenROAD
-          git -c protocol.version=2 clone --no-tags --progress --no-recurse-submodules --depth=1 https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
+          git -c protocol.version=2 clone --no-tags --no-recurse-submodules --depth=1 https://github.com/The-OpenROAD-Project/OpenROAD OpenROAD
+          pwd
+          ls -la
           cd OpenROAD
           #git checkout -b master origin/master
           # patch OpenROAD
@@ -120,13 +122,16 @@ jobs:
           patch -p1 < ../.github/workflows/openlane_spo_ol1.patch
           git commit -m "SPO antenna repair fix d1f0b60d7b31393ec0afb8f96e1ca02bb465b3fc" -a
           git log -n1
-          git archive -o docker/openroad_app/OpenROAD.tar.gz HEAD
-          ls -lad --full-time docker/openroad_app/OpenROAD.tar.gz
+          git archive -o ../docker/openroad_app/OpenROAD.tar.gz HEAD
+          ls -lad --full-time ../docker/openroad_app/OpenROAD.tar.gz
+          cd ..
 
           # Now this does not work at this time, it expects to get with curl
           #
           OPENROAD_APP_REPO=$(pwd)
+          echo "OPENROAD_APP_REPO=$OPENROAD_APP_REPO"
           OPENROAD_APP_COMMIT=$(git rev-parse HEAD)
+          echo "OPENROAD_APP_COMMIT=$OPENROAD_APP_COMMIT"
           #
           ## So we patch the Dockerfile to change where the OpenROAD source comes from
           cp -v docker/openroad_app/Dockerfile docker/openroad_app/Dockerfile.bak
