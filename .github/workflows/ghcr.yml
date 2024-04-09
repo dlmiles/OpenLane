@@ -27,6 +27,15 @@ jobs:
           # --label "org.opencontainers.image.description=My container image" \
           # --label "org.opencontainers.image.licenses=MIT"
 
+
+          # GHA template avoidance
+          docker_format="{ .Id }\t{ .Repository }\t{ .Tag }\t{ .CreatedAt }" # GHA escape avoidance
+          echo "docker_format=$docker_format"
+          docker_format=$(echo -n "$docker_format" | sed -e "s#{#{{#g" -e "s#}#}}#g")
+          echo "docker_format=$docker_format"
+          # go templates and GHA templates seem the same
+          echo "DOCKER_FORMAT=$docker_format" >> $GITHUB_ENV
+
       - name: make venv
         run: |
           make venv
@@ -35,7 +44,9 @@ jobs:
         run: |
           PYTHON_BIN=$(pwd)/venv/bin/${PYTHON_BIN} ${MAKE} -C docker build-build-base
 
-          docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
+          #docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
+          docker_format="$DOCKER_FORMAT"
+          echo docker_format=$docker_format
           readarray IID <<< $(podman images --filter "reference=efabless/openlane-tools" --format "$docker_format" | egrep "build-base-" | head -n 1 | tr '\t' '\n')
           BUILD_BASE_IMAGE_NAME=${IID[0]}
           test -n "$BUILD_BASE_IMAGE_NAME"
@@ -45,7 +56,9 @@ jobs:
         run: |
           docker images
 
-          docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
+          #docker_format="{{ '{{ .Id }}\t{{ .Repository }}\t{{ .Tag }}\t{{ .CreatedAt }}' }}" # GHA escape
+          docker_format="$DOCKER_FORMAT"
+          echo docker_format=$docker_format
           docker images --format "$docker_format" | egrep "(efabless/openlane|efabless/openlane-tools)" | sed -e 's#\t# | #' -e 's#.*#|\0|#'
 
           # push OL image to GHCR
