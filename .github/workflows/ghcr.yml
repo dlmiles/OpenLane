@@ -6,6 +6,8 @@ jobs:
   build:
     name: Build GHCR OpenLane Image
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     env:
       MAKE: make
       PYTHON_BIN: python3
